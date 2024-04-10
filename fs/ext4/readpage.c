@@ -230,6 +230,7 @@ ext4_submit_bio_read(struct bio *bio)
 	struct inode *inode = bio->bi_io_vec[0].bv_page->mapping->host;
 #endif
 #endif /* OPLUS_FEATURE_UFSPLUS */
+#ifdef CONFIG_TRACEPOINTS
 	if (trace_android_fs_dataread_start_enabled()) {
 		struct page *first_page = bio->bi_io_vec[0].bv_page;
 
@@ -248,6 +249,7 @@ ext4_submit_bio_read(struct bio *bio)
 				current->comm);
 		}
 	}
+#endif
 #ifdef OPLUS_FEATURE_UFSPLUS
 #ifdef CONFIG_FS_HPB
 	if(ext4_test_inode_state(inode, EXT4_STATE_HPB))
