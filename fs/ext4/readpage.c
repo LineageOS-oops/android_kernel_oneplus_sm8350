@@ -222,6 +222,41 @@ static inline loff_t ext4_readpage_limit(struct inode *inode)
 	return i_size_read(inode);
 }
 
+static void
+ext4_submit_bio_read(struct bio *bio)
+{
+#ifdef OPLUS_FEATURE_UFSPLUS
+#ifdef CONFIG_FS_HPB
+	struct inode *inode = bio->bi_io_vec[0].bv_page->mapping->host;
+#endif
+#endif /* OPLUS_FEATURE_UFSPLUS */
+	if (trace_android_fs_dataread_start_enabled()) {
+		struct page *first_page = bio->bi_io_vec[0].bv_page;
+
+		if (first_page != NULL) {
+			char *path, pathbuf[MAX_TRACE_PATHBUF_LEN];
+
+			path = android_fstrace_get_pathname(pathbuf,
+						    MAX_TRACE_PATHBUF_LEN,
+						    first_page->mapping->host);
+			trace_android_fs_dataread_start(
+				first_page->mapping->host,
+				page_offset(first_page),
+				bio->bi_iter.bi_size,
+				current->pid,
+				path,
+				current->comm);
+		}
+	}
+#ifdef OPLUS_FEATURE_UFSPLUS
+#ifdef CONFIG_FS_HPB
+	if(ext4_test_inode_state(inode, EXT4_STATE_HPB))
+		bio->bi_opf |= REQ_HPB_PREFER;
+#endif
+#endif /* OPLUS_FEATURE_UFSPLUS */
+	submit_bio(bio);
+}
+
 int ext4_mpage_readpages(struct address_space *mapping,
 			 struct list_head *pages, struct page *page,
 			 unsigned nr_pages, bool is_readahead)
@@ -370,7 +405,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
 		if (bio && (last_block_in_bio != blocks[0] - 1 ||
 			    !fscrypt_mergeable_bio(bio, inode, next_block))) {
 		submit_and_realloc:
-			submit_bio(bio);
+			ext4_submit_bio_read(bio);
 			bio = NULL;
 		}
 		if (bio == NULL) {
@@ -403,14 +438,14 @@ int ext4_mpage_readpages(struct address_space *mapping,
 		if (((map.m_flags & EXT4_MAP_BOUNDARY) &&
 		     (relative_block == map.m_len)) ||
 		    (first_hole != blocks_per_page)) {
-			submit_bio(bio);
+			ext4_submit_bio_read(bio);
 			bio = NULL;
 		} else
 			last_block_in_bio = blocks[blocks_per_page - 1];
 		goto next_page;
 	confused:
 		if (bio) {
-			submit_bio(bio);
+			ext4_submit_bio_read(bio);
 			bio = NULL;
 		}
 		if (!PageUptodate(page))
@@ -423,7 +458,7 @@ int ext4_mpage_readpages(struct address_space *mapping,
 	}
 	BUG_ON(pages && !list_empty(pages));
 	if (bio)
-		submit_bio(bio);
+		ext4_submit_bio_read(bio);
 	return 0;
 }
 
