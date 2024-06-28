@@ -2294,18 +2294,6 @@ handle_irq:
                         swr_master_write(swrm,
                                  SWRM_CPU1_INTERRUPT_EN, swrm->intr_mask);
                         break;
-			#ifdef OPLUS_BUG_STABILITY
-			/* Apply CR#3557691 add Address SWR rate mismatch interrupt,Handle DOUT_RATE_MISMATCH irq. */
-			case SWRM_INTERRUPT_STATUS_DOUT_RATE_MISMATCH:
-				dev_err(swrm->dev,
-					"%s: SWR Port Channel rate mismatch\n",
-					__func__);
-				swrm->intr_mask &=
-					~SWRM_INTERRUPT_STATUS_DOUT_RATE_MISMATCH;
-				swr_master_write(swrm,
-					SWRM_CPU1_INTERRUPT_EN, swrm->intr_mask);
-				break;
-			#endif
 		default:
 			dev_err_ratelimited(swrm->dev,
 					"%s: SWR unknown interrupt value: %d\n",
