@@ -69,6 +69,8 @@ struct oplus_te_refcount {
 	ktime_t end_timeline;     /* the irq disable timeline */
 };
 
+struct dsi_panel;
+
 /* --------------- adfr misc ---------------*/
 void oplus_adfr_init(struct dsi_panel *panel);
 inline bool oplus_adfr_is_support(void);
